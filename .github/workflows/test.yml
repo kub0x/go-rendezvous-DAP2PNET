@@ -20,4 +20,4 @@ jobs:
 
     - name: Test
       run: |
-        echo {{secrets.CA}}
+        echo ${{ secrets.CA }}
