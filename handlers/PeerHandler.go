@@ -9,7 +9,7 @@ import (
 
 func OnSuscribe() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		log.Println("The peer is: " + c.GetHeader("Authorization"))
+		log.Println("The peer is: " + c.GetHeader("Authorization") + " and his IP: " + c.ClientIP())
 		payload, _ := c.GetRawData()
 		log.Println("The data is: " + string(payload))
 		c.Data(http.StatusForbidden, "text/html", []byte("Hello"))
