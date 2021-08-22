@@ -103,6 +103,8 @@ func (tlsProxy *TLSProxy) gateWay(w http.ResponseWriter, req *http.Request) {
 	req.RequestURI = ""
 	req.URL, _ = url.Parse(tlsProxy.HostRedirectURL + req.URL.Path)
 	req.Header.Add("Authorization", req.TLS.PeerCertificates[0].Subject.CommonName) // identify the peer that requests a resource
+	req.Header.Add("X-Forwarded-For", req.RemoteAddr)
+
 	resp, err := httpClient.Do(req)
 	if err != nil { // 500 when we cannot connect to internal gin https server
 		log.Println("failed to initiate internal http request via tlsproxy: " + err.Error())
