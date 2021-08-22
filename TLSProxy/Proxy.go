@@ -65,7 +65,7 @@ func (tlsProxy *TLSProxy) Listen() error {
 	}
 
 	httpServer := &http.Server{
-		Addr:      ":443",
+		Addr:      ":6667",
 		TLSConfig: tlsConfig,
 	}
 
