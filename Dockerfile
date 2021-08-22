@@ -23,6 +23,7 @@ ADD . $GOPATH/src/app
 WORKDIR $GOPATH/src/app
 
 RUN mkdir -p /go/bin/certs/
+RUN echo '127.0.0.1 rendezvous.dap2p.net' >> tee /etc/hosts
 
 RUN echo "$CA" | tee /go/bin/certs/ca.pem
 RUN echo "$CERTIFICATE" | tee /go/bin/certs/$PKG.dap2p.net.pem
@@ -40,7 +41,7 @@ FROM scratch
 
 WORKDIR /
 
-EXPOSE 6666
+EXPOSE 6667
 USER 1001
 
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/

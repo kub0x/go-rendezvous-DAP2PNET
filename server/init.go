@@ -25,14 +25,9 @@ func Run() error {
 func InitializeEndpoints(servConfig *ServerConfig) error {
 	gin.ForceConsoleColor()
 	router := gin.New()
-	router.LoadHTMLGlob("templates/*")
 	router.Use(gin.Recovery(), gin.LoggerWithFormatter(middlewares.Logger))
 
-	println("All good!")
-
-	if gin.IsDebugging() {
-
-	}
+	InitPeerEndpoints(router.Group("/peers/"))
 
 	return router.RunTLS(":6668", servConfig.TLSCertPath, servConfig.TLSKeytPath)
 }
