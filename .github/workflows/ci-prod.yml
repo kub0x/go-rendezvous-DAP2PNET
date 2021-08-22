@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+       - uses: actions/checkout@v2
+
+       - name: Kubectl tool installer
+         uses: Azure/setup-kubectl@v1
+         with:
+          version: latest
+
+       - name: Docker Login
+         uses: docker/login-action@v1
+         with:
+           registry: ghcr.io
+           username: ${{ github.actor }}
+           password: ${{ secrets.GITHUB_TOKEN }}
+
+       - name: Set up QEMU
+         uses: docker/setup-qemu-action@v1
+          
+       - name: Set up Docker Buildx
+         id: buildx
+         uses: docker/setup-buildx-action@v1
+         with:
+           install: true
+
+       - name: Build and push Docker image to registry
+         uses: docker/build-push-action@v2
+         with:
+           context: .
+           platforms: linux/arm64
+           push: true
+           tags: ghcr.io/${{ github.actor }}/rendezvous:production-${{ github.sha }}
+           build-args: |
+            "CA=${{ secrets.CA }}"
+            "CERTIFICATE=${{ secrets.CERTIFICATE }}"
+            "PRIVATE_KEY=${{ secrets.PRIVATE_KEY }}"
+
+       - name: Deploying to Kubernetes Cluster
+         run: |
+          echo KUBECONFIG="${{ secrets.CLUSTER }}" | tee k3s.yaml
+          export KUBECONFIG=k3s.yaml
+          kubectl set image --namespace=production deployment/rendezvous rendezvous=ghcr.io/${{ github.actor }}/rendezvous:production-${{ github.sha }}

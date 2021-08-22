@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 )
@@ -15,17 +16,24 @@ var (
 )
 
 type TLSProxy struct {
+	CACertPath      string
+	ServerChainPath string
+	ServerKeyPath   string
 }
 
 func NewTLSProxy() *TLSProxy {
-	tlsProxy := &TLSProxy{}
+	tlsProxy := &TLSProxy{
+		CACertPath:      "./certs/ca.pem",
+		ServerChainPath: "./certs/rendezvous.dap2p.net.pem",
+		ServerKeyPath:   "./certs/rendezvous.dap2p.net.key",
+	}
 
 	return tlsProxy
 }
 
 func (tlsProxy *TLSProxy) Listen() error {
 
-	caBytes, err := ioutil.ReadFile("./certs/ca.pem")
+	caBytes, err := ioutil.ReadFile(tlsProxy.CACertPath)
 	if err != nil {
 		return TLSProxyErrReadCA
 	}
@@ -35,7 +43,7 @@ func (tlsProxy *TLSProxy) Listen() error {
 		return TLSProxyErrPoolAppend
 	}
 
-	tlsCertChain, err := tls.LoadX509KeyPair("./certs/chain_rendezvous.dap2p.net.pem", "./certs/rendezvous.dap2p.net.key")
+	tlsCertChain, err := tls.LoadX509KeyPair(tlsProxy.ServerChainPath, tlsProxy.ServerKeyPath)
 	if err != nil {
 		return TLSProxyErrLoadChain
 	}
@@ -52,16 +60,20 @@ func (tlsProxy *TLSProxy) Listen() error {
 		MinVersion:               tls.VersionTLS11,
 		// Avoid tls3 for debugging purposes
 		MaxVersion: tls.VersionTLS12,
-		// Client must validate our chain against our root CA
-		RootCAs: clientCertPool,
 		// Send the certificate chain
 		Certificates: []tls.Certificate{tlsCertChain},
 	}
 
 	httpServer := &http.Server{
-		Addr:      "192.168.1.39:443",
+		Addr:      ":443",
 		TLSConfig: tlsConfig,
 	}
 
-	return httpServer.ListenAndServeTLS("./certs/chain_rendezvous.dap2p.net.pem", "./certs/rendezvous.dap2p.net.key")
+	http.HandleFunc("/", HelloUser)
+
+	return httpServer.ListenAndServeTLS(tlsProxy.ServerChainPath, tlsProxy.ServerKeyPath)
+}
+
+func HelloUser(w http.ResponseWriter, req *http.Request) {
+	fmt.Fprintf(w, "Hello %v! you've been signed by %v \n", req.TLS.PeerCertificates[0].Subject.CommonName, req.TLS.PeerCertificates[1].Subject.CommonName)
 }

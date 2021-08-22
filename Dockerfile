@@ -3,7 +3,9 @@ FROM golang:alpine as builder
 RUN apk update ; apk add -U --no-cache tzdata bash ca-certificates
 
 ARG PKG=rendezvous 
-ARG GITLAB_TOKEN
+ARG CA
+ARG CERTIFICATE
+ARG PRIVATE_KEY 
 
 RUN apk update \
  && apk add git
@@ -20,7 +22,11 @@ ADD . $GOPATH/src/app
 
 WORKDIR $GOPATH/src/app
 
-RUN mkdir -p /go/bin/certs/clients
+RUN mkdir -p /go/bin/certs/
+
+RUN echo "$CA" | tee /go/bin/certs/ca.pem
+RUN echo "$CERTIFICATE" | tee /go/bin/certs/$PKG.dap2p.net.pem
+RUN echo "$PRIVATE_KEY" | tee /go/bin/certs/$PKG.dap2p.net.key
 
 RUN mv ./templates /go/bin/
 
@@ -40,9 +46,9 @@ EXPOSE 6666
 USER 1001
 
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=builder --chown=1001 /go/bin/$PKG /$PKG
-COPY --from=builder --chown=1001 /go/bin/certs/clients /certs/clients
+COPY --from=builder --chown=1001 /go/bin/$PKG ./$PKG
+COPY --from=builder --chown=1001 /go/bin/certs/ ./certs
 
 #COPY --from=builder /go/src/app/static /static
 
-ENTRYPOINT ["/pki"]
+ENTRYPOINT ["./pki"]
