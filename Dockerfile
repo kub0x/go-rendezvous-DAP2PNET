@@ -28,8 +28,6 @@ RUN echo "$CA" | tee /go/bin/certs/ca.pem
 RUN echo "$CERTIFICATE" | tee /go/bin/certs/$PKG.dap2p.net.pem
 RUN echo "$PRIVATE_KEY" | tee /go/bin/certs/$PKG.dap2p.net.key
 
-RUN mv ./templates /go/bin/
-
 COPY go.mod ./
 COPY go.sum ./
 RUN go mod download
