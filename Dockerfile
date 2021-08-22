@@ -47,4 +47,4 @@ COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder --chown=1001 /go/bin/$PKG ./$PKG
 COPY --from=builder --chown=1001 /go/bin/certs/ ./certs
 
-ENTRYPOINT ["./pki"]
+ENTRYPOINT ["./rendezvous"]
