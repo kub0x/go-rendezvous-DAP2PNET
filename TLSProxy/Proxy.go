@@ -103,6 +103,7 @@ func (tlsProxy *TLSProxy) gateWay(w http.ResponseWriter, req *http.Request) {
 	req.RequestURI = ""
 	req.URL, _ = url.Parse(tlsProxy.HostRedirectURL + req.URL.Path)
 	log.Println("X-Forwarded-For: " + req.Header.Get("X-Forwarded-For"))
+	log.Println("X-Real-Ip: " + req.Header.Get("X-Real-Ip"))
 	req.Header.Add("Authorization", req.TLS.PeerCertificates[0].Subject.CommonName) // identify the peer that requests a resource
 
 	ip, _, _ := net.SplitHostPort(req.RemoteAddr)
