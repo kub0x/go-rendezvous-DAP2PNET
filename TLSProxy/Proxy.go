@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 )
@@ -98,12 +99,15 @@ func (tlsProxy *TLSProxy) gateWay(w http.ResponseWriter, req *http.Request) {
 
 	// build new redirect url with same url path
 
-	log.Printf("Redirecting CN=%v! to %v\n", req.TLS.PeerCertificates[0].Subject.CommonName, req.URL.Path)
 	httpClient := &http.Client{Transport: tr}
 	req.RequestURI = ""
 	req.URL, _ = url.Parse(tlsProxy.HostRedirectURL + req.URL.Path)
+
 	req.Header.Add("Authorization", req.TLS.PeerCertificates[0].Subject.CommonName) // identify the peer that requests a resource
+
+	ip, _, _ := net.SplitHostPort(req.RemoteAddr)
 	req.Header.Add("X-Forwarded-For", req.RemoteAddr)
+	log.Printf("Redirecting CN=%v with IP=%v to %v\n", req.TLS.PeerCertificates[0].Subject.CommonName, ip, req.URL.Path)
 
 	resp, err := httpClient.Do(req)
 	if err != nil { // 500 when we cannot connect to internal gin https server
