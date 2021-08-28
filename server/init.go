@@ -32,5 +32,5 @@ func InitializeEndpoints(servConfig *ServerConfig) error {
 
 	InitPeerEndpoints(peersGroup)
 
-	return router.RunTLS("127.0.0.1:6668", servConfig.TLSCertPath, servConfig.TLSKeytPath)
+	return router.RunTLS(":6667", servConfig.TLSCertPath, servConfig.TLSKeytPath)
 }

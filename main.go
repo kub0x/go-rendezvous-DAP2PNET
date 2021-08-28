@@ -1,7 +1,6 @@
 package main
 
 import (
-	"dap2pnet/rendezvous/TLSProxy"
 	"dap2pnet/rendezvous/server"
 	"log"
 )
@@ -10,13 +9,13 @@ func main() {
 
 	//RUN TLS SERVER AS AN EXPOSED GATEWAY
 
-	tlsProxy := TLSProxy.NewTLSProxy()
+	/*tlsProxy := TLSProxy.NewTLSProxy()
 	go func() {
 		err := tlsProxy.Listen()
 		if err != nil {
 			log.Fatal("cannot initialise TLS Proxy: " + err.Error())
 		}
-	}()
+	}()*/
 
 	err := server.Run()
 	if err != nil {
