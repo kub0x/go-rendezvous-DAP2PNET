@@ -27,7 +27,7 @@ func SetPeerIdentity() gin.HandlerFunc {
 
 		q = strings.Split(q, ",")[0]
 		identity := strings.ReplaceAll(strings.Split(q, "CN=")[1], "\"", "")
-
+		c.Request.Header.Add("Peer-Identity", identity) // For logging purposes
 		c.Set("Identity", identity)
 	}
 }

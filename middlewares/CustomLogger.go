@@ -12,7 +12,7 @@ func Logger(param gin.LogFormatterParams) string {
 	return fmt.Sprintf("client: %s -> traefik: %s -> server - CN:%s - [%s] \"%s %s %s %d %s \"%s\" %s\"\n",
 		param.Request.Header.Get("X-Forwarded-For"),
 		param.ClientIP,
-		param.Request.Header.Get("Authorization"),
+		param.Request.Header.Get("Peer-Identity"),
 		param.TimeStamp.Format(time.RFC1123),
 		param.Method,
 		param.Path,
