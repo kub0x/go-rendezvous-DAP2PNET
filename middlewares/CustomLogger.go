@@ -9,9 +9,9 @@ import (
 
 func Logger(param gin.LogFormatterParams) string {
 
-	return fmt.Sprintf("%s -> tlsproxy -> %s - CN:%s - [%s] \"%s %s %s %d %s \"%s\" %s\"\n",
+	return fmt.Sprintf("client: %s -> traefik: %s -> server - CN:%s - [%s] \"%s %s %s %d %s \"%s\" %s\"\n",
 		param.Request.Header.Get("X-Forwarded-For"),
-		param.Request.RemoteAddr,
+		param.ClientIP,
 		param.Request.Header.Get("Authorization"),
 		param.TimeStamp.Format(time.RFC1123),
 		param.Method,
