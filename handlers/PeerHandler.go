@@ -25,7 +25,7 @@ func OnSubscribe(ren *rendezvous.Rendezvous) gin.HandlerFunc {
 		}
 
 		id := c.GetString("Identity")
-		ren.AddTriplet(id, c.ClientIP(), fmt.Sprint(subReq.Port))
+		ren.AddTriplet(id, c.GetHeader("X-Forwarded-For"), fmt.Sprint(subReq.Port))
 
 		c.Status(http.StatusOK)
 	}
