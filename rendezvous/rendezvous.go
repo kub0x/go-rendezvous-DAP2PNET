@@ -12,7 +12,9 @@ type Rendezvous struct {
 
 func NewRendezvous() *Rendezvous {
 	return &Rendezvous{
-		Peers:    PeerList{},
+		Peers: PeerList{
+			List: make(map[string]*models.Triplet),
+		},
 		MaxLinks: 5,
 	}
 }
