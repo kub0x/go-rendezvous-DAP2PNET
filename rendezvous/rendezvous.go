@@ -15,7 +15,7 @@ func NewRendezvous() *Rendezvous {
 		Peers: PeerList{
 			List: make(map[string]*models.Triplet),
 		},
-		MaxLinks: 5,
+		MaxLinks: 50,
 	}
 }
 
@@ -40,14 +40,14 @@ func (ren *Rendezvous) ClearPeerList() { // delete all triplets that exceeded ex
 
 func (ren *Rendezvous) MakePeerExchangeList(ID string) *models.PeerInfo {
 	restPeerInfo := &models.PeerInfo{}
-	ctr := 0
+	ctr := 1
 	for _, triplet := range ren.Peers.List {
 		if triplet.ID == ID { // exclude requester node from the list
 			continue
 		} else {
 			restPeerInfo.Triplets = append(restPeerInfo.Triplets, *triplet)
 		}
-		if ctr > ren.MaxLinks {
+		if ctr >= ren.MaxLinks {
 			break
 		} else {
 			ctr++
