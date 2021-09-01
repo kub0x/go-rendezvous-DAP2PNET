@@ -24,7 +24,7 @@ func main() {
 	go func() {
 		for true {
 			ren.ClearPeerList()
-			time.Sleep(time.Minute * 2)
+			time.Sleep(time.Minute * 10)
 		}
 	}()
 
