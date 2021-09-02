@@ -1,6 +1,6 @@
 FROM golang:alpine as builder
 
-RUN apk update ; apk add -U --no-cache tzdata bash ca-certificates
+RUN apk update ; apk add -U --no-cache tzdata bash ca-certificates gcc musl-dev
 
 ARG PKG=rendezvous 
 ARG CA
