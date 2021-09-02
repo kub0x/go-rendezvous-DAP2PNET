@@ -19,8 +19,8 @@ func NewRendezvous() *Rendezvous {
 		Peers: PeerList{
 			List: make(map[string]*models.Triplet),
 		},
-		MaxLinks: 5,
-		MinLinks: 1,
+		MaxLinks: 20,
+		MinLinks: 5,
 	}
 }
 
