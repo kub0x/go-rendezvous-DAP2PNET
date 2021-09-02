@@ -33,7 +33,7 @@ COPY go.sum ./
 RUN go mod download
 COPY *.go ./
 
-ENV CGO_ENABLED=0
+ENV CGO_ENABLED=1
 RUN go build -o /go/bin/$PKG -race
 
 FROM scratch
