@@ -47,11 +47,19 @@ func (ren *Rendezvous) ClearPeerList() { // delete all triplets that exceeded ex
 	ren.listMutex.Unlock()
 }
 
-func (ren *Rendezvous) MakePeerExchangeList(ID string) *models.PeerInfo {
-	if len(ren.Peers.List) <= ren.MinLinks {
-		return nil
+func (ren *Rendezvous) doWholePeerList(ID string) *models.PeerInfo {
+	restPeerInfo := &models.PeerInfo{}
+	for k, v := range ren.Peers.List {
+		if k == ID { // exclude requester node from the list
+			continue
+		}
+		restPeerInfo.Triplets = append(restPeerInfo.Triplets, *v)
 	}
-	ren.listMutex.Lock()
+
+	return restPeerInfo
+}
+
+func (ren *Rendezvous) doRandomPeerList(ID string) *models.PeerInfo {
 	restPeerInfo := &models.PeerInfo{}
 	keys := make([]string, 0, len(ren.Peers.List))
 	for k := range ren.Peers.List {
@@ -59,13 +67,7 @@ func (ren *Rendezvous) MakePeerExchangeList(ID string) *models.PeerInfo {
 	}
 	rands := make(map[int]int, ren.MaxLinks)
 	rand.Seed(time.Now().UnixNano())
-	pivot := 0
-	if len(ren.Peers.List) < ren.MaxLinks {
-		pivot = len(ren.Peers.List)
-	} else {
-		pivot = ren.MaxLinks
-	}
-	for i := 0; i < pivot; i++ {
+	for i := 0; i < ren.MaxLinks; i++ {
 		rnd := rand.Intn(len(ren.Peers.List))
 		if keys[rnd] == ID { // exclude requester node from the list
 			i--
@@ -78,6 +80,23 @@ func (ren *Rendezvous) MakePeerExchangeList(ID string) *models.PeerInfo {
 			continue
 		}
 	}
+
+	return restPeerInfo
+}
+
+func (ren *Rendezvous) MakePeerExchangeList(ID string) *models.PeerInfo {
+	if len(ren.Peers.List) <= ren.MinLinks {
+		return nil
+	}
+
+	ren.listMutex.Lock()
+	var restPeerInfo *models.PeerInfo
+	if len(ren.Peers.List) < 2*ren.MaxLinks { // last probability of choice is 1/2 as it has n+1/2n ~ 1/2
+		restPeerInfo = ren.doRandomPeerList(ID)
+	} else {
+		restPeerInfo = ren.doWholePeerList(ID)
+	}
+
 	ren.listMutex.Unlock()
 	return restPeerInfo
 }
