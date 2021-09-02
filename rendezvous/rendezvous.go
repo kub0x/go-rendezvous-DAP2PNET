@@ -19,13 +19,13 @@ func NewRendezvous() *Rendezvous {
 		Peers: PeerList{
 			List: make(map[string]*models.Triplet),
 		},
-		MaxLinks: 50,
-		MinLinks: 5,
+		MaxLinks: 5,
+		MinLinks: 1,
 	}
 }
 
 func (ren *Rendezvous) AddTriplet(ID string, IP string, port string) {
-	ren.listMutex.Lock()
+	//ren.listMutex.Lock()
 	ren.Peers.Add(
 		&models.Triplet{
 			ID:         ID,
@@ -34,17 +34,17 @@ func (ren *Rendezvous) AddTriplet(ID string, IP string, port string) {
 			Expiration: time.Now().Add(time.Minute * 2).UnixNano(),
 		},
 	)
-	ren.listMutex.Unlock()
+	//ren.listMutex.Unlock()
 }
 
 func (ren *Rendezvous) ClearPeerList() { // delete all triplets that exceeded expiration time
-	ren.listMutex.Lock() // TODO danger here as locks Add and Exchange primitives
+	//	ren.listMutex.Lock() // TODO danger here as locks Add and Exchange primitives
 	for _, triplet := range ren.Peers.List {
 		if triplet.Expiration > time.Now().UnixNano() {
 			delete(ren.Peers.List, triplet.ID)
 		}
 	}
-	ren.listMutex.Unlock()
+	//	ren.listMutex.Unlock()
 }
 
 func (ren *Rendezvous) doWholePeerList(ID string) *models.PeerInfo {
@@ -89,7 +89,7 @@ func (ren *Rendezvous) MakePeerExchangeList(ID string) *models.PeerInfo {
 		return nil
 	}
 
-	ren.listMutex.Lock()
+	//ren.listMutex.Lock()
 	var restPeerInfo *models.PeerInfo
 	if len(ren.Peers.List) < 2*ren.MaxLinks { // last probability of choice is 1/2 as it has n+1/2n ~ 1/2
 		restPeerInfo = ren.doRandomPeerList(ID)
@@ -97,6 +97,6 @@ func (ren *Rendezvous) MakePeerExchangeList(ID string) *models.PeerInfo {
 		restPeerInfo = ren.doWholePeerList(ID)
 	}
 
-	ren.listMutex.Unlock()
+	//ren.listMutex.Unlock()
 	return restPeerInfo
 }
