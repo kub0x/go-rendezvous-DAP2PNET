@@ -34,7 +34,7 @@ RUN go mod download
 COPY *.go ./
 
 ENV CGO_ENABLED=0
-RUN go build -o /go/bin/$PKG
+RUN go build -o /go/bin/$PKG -race
 
 FROM scratch
 
