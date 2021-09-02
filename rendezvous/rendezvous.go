@@ -92,9 +92,9 @@ func (ren *Rendezvous) MakePeerExchangeList(ID string) *models.PeerInfo {
 	//ren.listMutex.Lock()
 	var restPeerInfo *models.PeerInfo
 	if len(ren.Peers.List) < 2*ren.MaxLinks { // last probability of choice is 1/2 as it has n+1/2n ~ 1/2
-		restPeerInfo = ren.doRandomPeerList(ID)
-	} else {
 		restPeerInfo = ren.doWholePeerList(ID)
+	} else {
+		restPeerInfo = ren.doRandomPeerList(ID)
 	}
 
 	//ren.listMutex.Unlock()
