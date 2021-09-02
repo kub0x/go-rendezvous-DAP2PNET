@@ -59,8 +59,14 @@ func (ren *Rendezvous) MakePeerExchangeList(ID string) *models.PeerInfo {
 	}
 	rands := make(map[int]int, ren.MaxLinks)
 	rand.Seed(time.Now().UnixNano())
-	for i := 0; i < ren.MaxLinks; i++ {
-		rnd := rand.Intn(ren.MaxLinks + 1)
+	pivot := 0
+	if len(ren.Peers.List) < ren.MaxLinks {
+		pivot = len(ren.Peers.List)
+	} else {
+		pivot = ren.MaxLinks
+	}
+	for i := 0; i < pivot; i++ {
+		rnd := rand.Intn(len(ren.Peers.List))
 		if keys[rnd] == ID { // exclude requester node from the list
 			i--
 			continue
