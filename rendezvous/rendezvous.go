@@ -2,12 +2,16 @@ package rendezvous
 
 import (
 	"dap2pnet/rendezvous/models"
+	"math/rand"
+	"sync"
 	"time"
 )
 
 type Rendezvous struct {
-	Peers    PeerList
-	MaxLinks int
+	Peers     PeerList
+	MaxLinks  int
+	MinLinks  int
+	listMutex sync.Mutex // for controlling write and iterating on peer list
 }
 
 func NewRendezvous() *Rendezvous {
@@ -16,10 +20,12 @@ func NewRendezvous() *Rendezvous {
 			List: make(map[string]*models.Triplet),
 		},
 		MaxLinks: 50,
+		MinLinks: 5,
 	}
 }
 
 func (ren *Rendezvous) AddTriplet(ID string, IP string, port string) {
+	ren.listMutex.Lock()
 	ren.Peers.Add(
 		&models.Triplet{
 			ID:         ID,
@@ -28,30 +34,44 @@ func (ren *Rendezvous) AddTriplet(ID string, IP string, port string) {
 			Expiration: time.Now().Add(time.Minute * 2).UnixNano(),
 		},
 	)
+	ren.listMutex.Unlock()
 }
 
 func (ren *Rendezvous) ClearPeerList() { // delete all triplets that exceeded expiration time
+	ren.listMutex.Lock() // TODO danger here as locks Add and Exchange primitives
 	for _, triplet := range ren.Peers.List {
 		if triplet.Expiration > time.Now().UnixNano() {
 			delete(ren.Peers.List, triplet.ID)
 		}
 	}
+	ren.listMutex.Unlock()
 }
 
 func (ren *Rendezvous) MakePeerExchangeList(ID string) *models.PeerInfo {
+	if len(ren.Peers.List) <= ren.MinLinks {
+		return nil
+	}
+	ren.listMutex.Lock()
 	restPeerInfo := &models.PeerInfo{}
-	ctr := 1
-	for _, triplet := range ren.Peers.List {
-		if triplet.ID == ID { // exclude requester node from the list
+	keys := make([]string, 0, len(ren.Peers.List))
+	for k := range ren.Peers.List {
+		keys = append(keys, k)
+	}
+	rands := make(map[int]int, ren.MaxLinks)
+	rand.Seed(time.Now().UnixNano())
+	for i := 0; i < ren.MaxLinks; i++ {
+		rnd := rand.Intn(ren.MaxLinks + 1)
+		if keys[rnd] == ID { // exclude requester node from the list
+			i--
 			continue
-		} else {
-			restPeerInfo.Triplets = append(restPeerInfo.Triplets, *triplet)
-		}
-		if ctr >= ren.MaxLinks {
-			break
-		} else {
-			ctr++
+		} else if rands[rnd] != rnd {
+			rands[rnd] = rnd
+			restPeerInfo.Triplets = append(restPeerInfo.Triplets, *ren.Peers.List[keys[rnd]])
+		} else if rands[rnd] == rnd {
+			i--
+			continue
 		}
 	}
+	ren.listMutex.Unlock()
 	return restPeerInfo
 }

@@ -13,6 +13,7 @@ import (
 var (
 	PeerHandlerErrUnvalidPort  = errors.New("you must select a valid port")
 	PeerHandlerErrUnauthorized = errors.New("you must subscribe to rendezvous in order to access peer lists")
+	PeerHandlerErrMinLinks     = errors.New("not enough peers to link")
 )
 
 func OnSubscribe(ren *rendezvous.Rendezvous) gin.HandlerFunc {
@@ -39,6 +40,12 @@ func OnGetPeers(ren *rendezvous.Rendezvous) gin.HandlerFunc {
 			return
 		}
 
-		c.JSON(http.StatusOK, ren.MakePeerExchangeList(id))
+		peerList := ren.MakePeerExchangeList(id)
+		if peerList == nil {
+			c.AbortWithError(http.StatusUnauthorized, PeerHandlerErrMinLinks)
+			return
+		}
+
+		c.JSON(http.StatusOK, peerList)
 	}
 }
