@@ -87,6 +87,16 @@ func (ren *Rendezvous) doRandomPeerList(ID string) *models.PeerInfo {
 	return restPeerInfo
 }
 
+func (ren *Rendezvous) IsPeerSubscribed(id string) bool {
+	ret := false
+	ren.listMutex.Lock()
+	defer ren.listMutex.Unlock()
+	if ren.Peers.List[id] != nil {
+		ret = true
+	}
+	return ret
+}
+
 func (ren *Rendezvous) MakePeerExchangeList(ID string) *models.PeerInfo {
 	if len(ren.Peers.List) <= ren.MinLinks {
 		return nil

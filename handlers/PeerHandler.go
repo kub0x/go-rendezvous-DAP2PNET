@@ -35,7 +35,7 @@ func OnSubscribe(ren *rendezvous.Rendezvous) gin.HandlerFunc {
 func OnGetPeers(ren *rendezvous.Rendezvous) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id := c.GetString("Identity")
-		if ren.Peers.List[id] == nil {
+		if !ren.IsPeerSubscribed(id) {
 			c.AbortWithError(http.StatusUnauthorized, PeerHandlerErrUnauthorized)
 			return
 		}
