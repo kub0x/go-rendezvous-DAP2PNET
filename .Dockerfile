@@ -1,14 +1,19 @@
-FROM golang:alpine as builder
+FROM golang:1.15-buster AS base
 
-RUN apk update ; apk add -U --no-cache tzdata bash ca-certificates gcc musl-dev
+
+ENV GNU_HOST=arm-linux-gnueabi
+ENV CC=$GNU_HOST-gcc
+ENV GO111MODULE=on
+
+RUN apt-get update && \
+  apt-get --no-install-recommends install -y gcc-$GNU_HOST \
+    libc6-dev-armel-cross && \
+  rm -rf /var/lib/apt/lists/*
 
 ARG PKG=rendezvous 
 ARG CA
 ARG CERTIFICATE
-ARG PRIVATE_KEY 
-
-RUN apk update \
- && apk add git
+ARG PRIVATE_KEY
 
 RUN mkdir -p /go/src \
  && mkdir -p /go/bin \
@@ -33,8 +38,10 @@ COPY go.sum ./
 RUN go mod download
 COPY *.go ./
 
+RUN ls /usr/bin/gcc*
+
 ENV CGO_ENABLED=1
-RUN go build -o /go/bin/$PKG -race
+RUN CC=gcc go build -o /go/bin/$PKG -race
 
 WORKDIR /go/bin
 
