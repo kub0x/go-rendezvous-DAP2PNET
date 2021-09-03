@@ -36,15 +36,17 @@ COPY *.go ./
 ENV CGO_ENABLED=1
 RUN go build -o /go/bin/$PKG -race
 
-FROM scratch
+WORKDIR /go/bin
 
-WORKDIR /
+# FROM scratch
 
-EXPOSE 6667
-USER 1001
+# WORKDIR /
 
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=builder --chown=1001 /go/bin/$PKG ./$PKG
-COPY --from=builder --chown=1001 /go/bin/certs/ ./certs
+# EXPOSE 6667
+# USER 1001
+
+# COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+# COPY --from=builder --chown=1001 /go/bin/$PKG ./$PKG
+# COPY --from=builder --chown=1001 /go/bin/certs/ ./certs
 
 ENTRYPOINT ["./rendezvous"]
