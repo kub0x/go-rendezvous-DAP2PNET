@@ -26,7 +26,7 @@ func Run(ren *rendezvous.Rendezvous) error {
 func InitializeEndpoints(servConfig *ServerConfig, ren *rendezvous.Rendezvous) error {
 	gin.ForceConsoleColor()
 	router := gin.New()
-	router.Use(gin.Recovery(), gin.LoggerWithFormatter(middlewares.Logger))
+	router.Use(gin.Recovery()) //, gin.LoggerWithFormatter(middlewares.Logger))
 
 	peersGroup := router.Group("/peers/")
 	peersGroup.Use(middlewares.SetPeerIdentity())
