@@ -88,9 +88,10 @@ func (ren *Rendezvous) doRandomPeerList(ID string) *models.PeerInfo {
 }
 
 func (ren *Rendezvous) IsPeerSubscribed(id string) bool {
-	ret := false
 	ren.listMutex.Lock()
 	defer ren.listMutex.Unlock()
+
+	ret := false
 	if ren.Peers.List[id] != nil {
 		ret = true
 	}
@@ -98,12 +99,13 @@ func (ren *Rendezvous) IsPeerSubscribed(id string) bool {
 }
 
 func (ren *Rendezvous) MakePeerExchangeList(ID string) *models.PeerInfo {
+	ren.listMutex.Lock()
+	defer ren.listMutex.Unlock()
+
 	if len(ren.Peers.List) <= ren.MinLinks {
 		return nil
 	}
 
-	ren.listMutex.Lock()
-	defer ren.listMutex.Unlock()
 	var restPeerInfo *models.PeerInfo
 	if len(ren.Peers.List) < 2*ren.MaxLinks { // last probability of choice is 1/2 as it has n+1/2n ~ 1/2
 		restPeerInfo = ren.doWholePeerList(ID)
