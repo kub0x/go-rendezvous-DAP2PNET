@@ -4,7 +4,6 @@ import (
 	"dap2pnet/rendezvous/rendezvous"
 	"dap2pnet/rendezvous/server"
 	"log"
-	"time"
 )
 
 func main() {
@@ -20,13 +19,6 @@ func main() {
 	}()*/
 
 	ren := rendezvous.NewRendezvous()
-
-	go func() {
-		for true {
-			ren.ClearPeerList()
-			time.Sleep(time.Minute * 10)
-		}
-	}()
 
 	err := server.Run(ren)
 	if err != nil {

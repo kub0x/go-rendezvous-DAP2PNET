@@ -11,7 +11,3 @@ func (pl *PeerList) Add(triplet *models.Triplet) {
 		pl.List[triplet.ID] = triplet
 	}
 }
-
-// func (pl *PeerList) ToJSON(t) models.Triplet {
-// 	return pl.List[[]]
-// }

@@ -1,14 +1,17 @@
-FROM golang:alpine as builder
+FROM golang:1.15-buster AS base
 
-RUN apk update ; apk add -U --no-cache tzdata bash ca-certificates
+ENV CC=gcc
+ENV GO111MODULE=on
+
+RUN apt-get update && \
+  apt-get --no-install-recommends install -y gcc \
+    libc6-dev-armel-cross && \
+  rm -rf /var/lib/apt/lists/*
 
 ARG PKG=rendezvous 
 ARG CA
 ARG CERTIFICATE
-ARG PRIVATE_KEY 
-
-RUN apk update \
- && apk add git
+ARG PRIVATE_KEY
 
 RUN mkdir -p /go/src \
  && mkdir -p /go/bin \
@@ -33,18 +36,22 @@ COPY go.sum ./
 RUN go mod download
 COPY *.go ./
 
-ENV CGO_ENABLED=0
-RUN go build -o /go/bin/$PKG
+RUN ls /usr/bin/gcc*
 
-FROM scratch
+ENV CGO_ENABLED=1
+RUN CC=gcc go build -o /go/bin/$PKG -race
 
-WORKDIR /
+WORKDIR /go/bin
 
-EXPOSE 6667
-USER 1001
+# FROM scratch
 
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=builder --chown=1001 /go/bin/$PKG ./$PKG
-COPY --from=builder --chown=1001 /go/bin/certs/ ./certs
+# WORKDIR /
+
+# EXPOSE 6667
+# USER 1001
+
+# COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+# COPY --from=builder --chown=1001 /go/bin/$PKG ./$PKG
+# COPY --from=builder --chown=1001 /go/bin/certs/ ./certs
 
 ENTRYPOINT ["./rendezvous"]

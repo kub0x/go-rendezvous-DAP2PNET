@@ -33,26 +33,20 @@ func (ren *Rendezvous) AddTriplet(ID string, IP string, port string) {
 			ID:         ID,
 			IP:         IP,
 			Port:       port,
-			Expiration: time.Now().Add(time.Minute * 2).UnixNano(),
+			Expiration: time.Now().Add(time.Minute * 2).Unix(),
 		},
 	)
-}
-
-func (ren *Rendezvous) ClearPeerList() { // delete all triplets that exceeded expiration time
-	// TODO danger here as locks Add and Exchange primitives
-	ren.listMutex.Lock()
-	defer ren.listMutex.Unlock()
-
-	for _, triplet := range ren.Peers.List {
-		if triplet.Expiration > time.Now().UnixNano() {
-			delete(ren.Peers.List, triplet.ID)
-		}
-	}
 }
 
 func (ren *Rendezvous) doWholePeerList(ID string) *models.PeerInfo {
 	restPeerInfo := &models.PeerInfo{}
 	for k, v := range ren.Peers.List {
+		now := time.Now().Unix()
+		if now > ren.Peers.List[k].Expiration {
+			println("Deleting " + k)
+			delete(ren.Peers.List, k)
+			continue
+		}
 		if k == ID { // exclude requester node from the list
 			continue
 		}
@@ -72,15 +66,21 @@ func (ren *Rendezvous) doRandomPeerList(ID string) *models.PeerInfo {
 	rand.Seed(time.Now().UnixNano())
 	for i := 0; i < ren.MaxLinks; i++ {
 		rnd := rand.Intn(len(ren.Peers.List))
-		if keys[rnd] == ID { // exclude requester node from the list
-			i--
-			continue
-		} else if rands[rnd] != rnd {
+		if rands[rnd] != rnd {
 			rands[rnd] = rnd
+			now := time.Now().Unix()
+			if now > ren.Peers.List[keys[rnd]].Expiration {
+				println("Deleting " + keys[rnd])
+				delete(ren.Peers.List, keys[rnd])
+				continue
+			}
+			if keys[rnd] == ID { // exclude requester node from the list
+				i--
+				continue
+			}
 			restPeerInfo.Triplets = append(restPeerInfo.Triplets, *ren.Peers.List[keys[rnd]])
 		} else if rands[rnd] == rnd {
 			i--
-			continue
 		}
 	}
 
@@ -92,9 +92,11 @@ func (ren *Rendezvous) IsPeerSubscribed(id string) bool {
 	defer ren.listMutex.Unlock()
 
 	ret := false
-	if ren.Peers.List[id] != nil {
+	now := time.Now().Unix()
+	if ren.Peers.List[id] != nil && now < ren.Peers.List[id].Expiration {
 		ret = true
 	}
+
 	return ret
 }
 
