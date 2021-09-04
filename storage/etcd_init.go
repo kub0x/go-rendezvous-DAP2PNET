@@ -32,7 +32,7 @@ type Etcd struct {
 
 func Open() (*Storage, error) {
 	etcd := &Etcd{
-		Endpoints: []string{"http://etcd:2379"},
+		Endpoints: []string{"http://etcd-rendezvous:2379"},
 		Namespace: "",
 		Username:  "root",
 		Password:  "root",
