@@ -2,118 +2,106 @@ package rendezvous
 
 import (
 	"dap2pnet/rendezvous/models"
+	"dap2pnet/rendezvous/storage"
+	"errors"
+	"log"
 	"math/rand"
-	"sync"
 	"time"
 )
 
+var (
+	RendezvousErrPeerUnsuscribed = errors.New("you are not subscribed to the rendezvous")
+	RendezvousErrPeerExpired     = errors.New("your session has expired")
+	RendezvousErrPeerMinlinks    = errors.New("not enough peers in the list")
+)
+
 type Rendezvous struct {
-	Peers     PeerList
-	MaxLinks  int
-	MinLinks  int
-	listMutex sync.Mutex // for controlling write and iterating on peer list
+	MaxLinks int
+	MinLinks int
+	st       *storage.Storage
 }
 
 func NewRendezvous() *Rendezvous {
+	st, err := storage.Open()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	return &Rendezvous{
-		Peers: PeerList{
-			List: make(map[string]*models.Triplet),
-		},
 		MaxLinks: 20,
 		MinLinks: 5,
+		st:       st,
 	}
 }
 
-func (ren *Rendezvous) AddTriplet(ID string, IP string, port string) {
-	ren.listMutex.Lock()
-	defer ren.listMutex.Unlock()
-
-	ren.Peers.Add(
-		&models.Triplet{
-			ID:         ID,
-			IP:         IP,
-			Port:       port,
-			Expiration: time.Now().Add(time.Minute * 2).Unix(),
-		},
-	)
+func (ren *Rendezvous) AddTriplet(ID string, IP string, port string) error {
+	return ren.st.CreateTriplet(models.Triplet{
+		ID:         ID,
+		IP:         IP,
+		Port:       port,
+		Expiration: time.Now().Add(time.Minute * 2).Unix(),
+	})
 }
 
-func (ren *Rendezvous) doWholePeerList(ID string) *models.PeerInfo {
+func (ren *Rendezvous) doPeerList(ID string) (*models.PeerInfo, error) {
 	restPeerInfo := &models.PeerInfo{}
-	for k, v := range ren.Peers.List {
-		now := time.Now().Unix()
-		if now > ren.Peers.List[k].Expiration {
-			println("Deleting " + k)
-			delete(ren.Peers.List, k)
-			continue
-		}
-		if k == ID { // exclude requester node from the list
-			continue
-		}
-		restPeerInfo.Triplets = append(restPeerInfo.Triplets, *v)
+	trs, err := ren.st.GetTriplets()
+	if err != nil {
+		return nil, err
 	}
 
-	return restPeerInfo
+	limit := ren.MaxLinks
+	if len(trs) < 2*ren.MaxLinks {
+		limit = len(trs)
+	}
+
+	perm := rand.Perm(limit) // pseudo random permutation ftw
+	from := 0
+	to := perm[from]
+	for i := 0; i < limit; i++ {
+		v := perm[from]
+		from = to
+		if trs[v].ID == ID {
+			continue // exclude requester node from the list
+		}
+		restPeerInfo.Triplets = append(restPeerInfo.Triplets, trs[v])
+	}
+
+	return restPeerInfo, nil
 }
 
-func (ren *Rendezvous) doRandomPeerList(ID string) *models.PeerInfo {
-	restPeerInfo := &models.PeerInfo{}
-	keys := make([]string, 0, len(ren.Peers.List))
-	for k := range ren.Peers.List {
-		keys = append(keys, k)
-	}
-	rands := make(map[int]int, ren.MaxLinks)
-	rand.Seed(time.Now().UnixNano())
-	for i := 0; i < ren.MaxLinks; i++ {
-		rnd := rand.Intn(len(ren.Peers.List))
-		if rands[rnd] != rnd {
-			rands[rnd] = rnd
-			now := time.Now().Unix()
-			if now > ren.Peers.List[keys[rnd]].Expiration {
-				println("Deleting " + keys[rnd])
-				delete(ren.Peers.List, keys[rnd])
-				continue
-			}
-			if keys[rnd] == ID { // exclude requester node from the list
-				i--
-				continue
-			}
-			restPeerInfo.Triplets = append(restPeerInfo.Triplets, *ren.Peers.List[keys[rnd]])
-		} else if rands[rnd] == rnd {
-			i--
-		}
+func (ren *Rendezvous) IsPeerSubscribed(id string) error {
+	triplet, err := ren.st.GetTriplet(id)
+	if err != nil {
+		err = RendezvousErrPeerUnsuscribed
 	}
 
-	return restPeerInfo
-}
-
-func (ren *Rendezvous) IsPeerSubscribed(id string) bool {
-	ren.listMutex.Lock()
-	defer ren.listMutex.Unlock()
-
-	ret := false
 	now := time.Now().Unix()
-	if ren.Peers.List[id] != nil && now < ren.Peers.List[id].Expiration {
-		ret = true
+	if now > triplet.Expiration { // peer has ttl lease on etcd but who knows...
+		err = RendezvousErrPeerExpired
 	}
 
-	return ret
+	return err
 }
 
-func (ren *Rendezvous) MakePeerExchangeList(ID string) *models.PeerInfo {
-	ren.listMutex.Lock()
-	defer ren.listMutex.Unlock()
-
-	if len(ren.Peers.List) <= ren.MinLinks {
-		return nil
+func (ren *Rendezvous) MakePeerExchangeList(ID string) (*models.PeerInfo, error) {
+	count, err := ren.st.GetTripletCount()
+	if err != nil {
+		return nil, err
 	}
 
-	var restPeerInfo *models.PeerInfo
-	if len(ren.Peers.List) < 2*ren.MaxLinks { // last probability of choice is 1/2 as it has n+1/2n ~ 1/2
-		restPeerInfo = ren.doWholePeerList(ID)
-	} else {
-		restPeerInfo = ren.doRandomPeerList(ID)
+	if int(count) <= ren.MinLinks {
+		return nil, RendezvousErrPeerMinlinks
 	}
 
-	return restPeerInfo
+	restPeerInfo, err := ren.doPeerList(ID)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(restPeerInfo.Triplets) <= ren.MinLinks {
+		err = RendezvousErrPeerMinlinks
+	}
+
+	return restPeerInfo, err
 }

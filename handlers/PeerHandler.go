@@ -26,7 +26,11 @@ func OnSubscribe(ren *rendezvous.Rendezvous) gin.HandlerFunc {
 		}
 
 		id := c.GetString("Identity")
-		ren.AddTriplet(id, c.GetHeader("X-Forwarded-For"), fmt.Sprint(subReq.Port))
+		err = ren.AddTriplet(id, c.GetHeader("X-Forwarded-For"), fmt.Sprint(subReq.Port))
+		if err != nil {
+			c.AbortWithError(http.StatusUnauthorized, err)
+			return
+		}
 
 		c.Status(http.StatusOK)
 	}
@@ -35,14 +39,15 @@ func OnSubscribe(ren *rendezvous.Rendezvous) gin.HandlerFunc {
 func OnGetPeers(ren *rendezvous.Rendezvous) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id := c.GetString("Identity")
-		if !ren.IsPeerSubscribed(id) {
-			c.AbortWithError(http.StatusUnauthorized, PeerHandlerErrUnauthorized)
+		err := ren.IsPeerSubscribed(id)
+		if err != nil {
+			c.AbortWithError(http.StatusUnauthorized, err)
 			return
 		}
 
-		peerList := ren.MakePeerExchangeList(id)
+		peerList, err := ren.MakePeerExchangeList(id)
 		if peerList == nil {
-			c.AbortWithError(http.StatusUnauthorized, PeerHandlerErrMinLinks)
+			c.AbortWithError(http.StatusUnauthorized, err)
 			return
 		}
 
