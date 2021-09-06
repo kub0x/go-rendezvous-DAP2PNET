@@ -54,7 +54,6 @@ func main() {
 	// fmt.Println(st.GetTripletCount())
 
 	ren := rendezvous.NewRendezvous()
-
 	err := server.Run(ren)
 	if err != nil {
 		log.Fatal("cannot initialise rendezvous server: " + err.Error())

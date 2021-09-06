@@ -57,14 +57,13 @@ func (ren *Rendezvous) doPeerList(ID string) (*models.PeerInfo, error) {
 
 	perm := rand.Perm(limit) // pseudo random permutation ftw
 	from := 0
-	to := perm[from]
 	for i := 0; i < limit; i++ {
-		v := perm[from]
+		to := perm[from]
 		from = to
-		if trs[v].ID == ID {
+		if trs[to].ID == ID {
 			continue // exclude requester node from the list
 		}
-		restPeerInfo.Triplets = append(restPeerInfo.Triplets, trs[v])
+		restPeerInfo.Triplets = append(restPeerInfo.Triplets, trs[to])
 	}
 
 	return restPeerInfo, nil
